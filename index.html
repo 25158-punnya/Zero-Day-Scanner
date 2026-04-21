@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Zero-Day Scanner — Professional E-commerce Web Portal Security Analysis Tool" />
+  <title>Zero-Day Scanner | E-commerce Security</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+<!-- ─── MATRIX RAIN BACKGROUND ──────────────────────────────────── -->
+<canvas id="matrixCanvas"></canvas>
+
+<!-- ─── SCAN OVERLAY ──────────────────────────────────────────────── -->
+<div id="scanOverlay" class="scan-overlay hidden">
+  <div class="scan-beam"></div>
+</div>
+
+<!-- ─── HEADER ────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="none" stroke="#00ff88" stroke-width="2"/>
+          <polygon points="20,8 32,15 32,25 20,32 8,25 8,15" fill="none" stroke="#00ff88" stroke-width="1" opacity="0.5"/>
+          <circle cx="20" cy="20" r="4" fill="#00ff88"/>
+          <line x1="20" y1="2" x2="20" y2="8" stroke="#00ff88" stroke-width="1"/>
+          <line x1="20" y1="32" x2="20" y2="38" stroke="#00ff88" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-title">ZERO-DAY SCANNER</span>
+        <span class="logo-sub">E-COMMERCE SECURITY SUITE v2</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot" id="systemStatus"></div>
+      <span class="status-label" id="systemStatusLabel">SYSTEM READY</span>
+    </div>
+    <div class="header-time" id="liveTime"></div>
+  </div>
+</header>
+
+<!-- ─── MAIN ──────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      <span>ETHICAL HACKING • AUTOMATED SECURITY ANALYSIS</span>
+    </div>
+    <h1 class="hero-title">
+      <span class="glitch" data-text="ZERO-DAY">ZERO-DAY</span>
+      <br />
+      <span class="hero-title-sub">E-COMMERCE SCANNER</span>
+    </h1>
+    <p class="hero-desc">
+      Advanced subdomain enumeration, link integrity checks, 404 detection, soft-404 analysis and HTTP status scanning for e-commerce web portals.
+    </p>
+
+    <!-- SCAN INPUT -->
+    <div class="scan-box" id="scanBox">
+      <div class="scan-box-header">
+        <span class="scan-box-label">TARGET URL</span>
+        <span class="scan-box-hint">e.g. flipkart.com • amazon.in • the-internet.herokuapp.com</span>
+      </div>
+      <div class="scan-input-row">
+        <div class="input-prefix">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          SCAN //
+        </div>
+        <input
+          type="text"
+          id="targetUrl"
+          class="scan-input"
+          placeholder="the-internet.herokuapp.com/broken_links"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="scanBtn" class="scan-btn" onclick="startScan()">
+          <span id="scanBtnText">INITIATE SCAN</span>
+          <svg id="scanBtnIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Crawl depth selector -->
+      <div class="scan-options">
+        <span class="option-label">CRAWL DEPTH:</span>
+        <div class="depth-selector">
+          <button class="depth-btn" id="depth-1" onclick="setDepth(1)">1</button>
+          <button class="depth-btn active" id="depth-2" onclick="setDepth(2)">2 ✓</button>
+          <button class="depth-btn" id="depth-3" onclick="setDepth(3)">3</button>
+        </div>
+        <span class="option-hint" id="depthHint">Crawls main page + all same-domain links (recommended)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS BAR (hidden until scan done) -->
+  <section class="stats-bar hidden" id="statsBar">
+    <div class="stat-card" id="statTotal">
+      <div class="stat-value" id="statTotalVal">0</div>
+      <div class="stat-label">LINKS CHECKED</div>
+    </div>
+    <div class="stat-card ok" id="statOk">
+      <div class="stat-value" id="statOkVal">0</div>
+      <div class="stat-label">200 OK</div>
+    </div>
+    <div class="stat-card warn" id="statRedirects">
+      <div class="stat-value" id="statRedirectsVal">0</div>
+      <div class="stat-label">REDIRECTS</div>
+    </div>
+    <div class="stat-card danger" id="statBroken">
+      <div class="stat-value" id="statBrokenVal">0</div>
+      <div class="stat-label">404 NOT FOUND</div>
+    </div>
+    <div class="stat-card soft404" id="statSoft404">
+      <div class="stat-value" id="statSoft404Val">0</div>
+      <div class="stat-label">SOFT 404s</div>
+    </div>
+    <div class="stat-card danger" id="statErrors">
+      <div class="stat-value" id="statErrorsVal">0</div>
+      <div class="stat-label">ERRORS</div>
+    </div>
+    <div class="stat-card info" id="statSubdomains">
+      <div class="stat-value" id="statSubdomainsVal">0</div>
+      <div class="stat-label">SUBDOMAINS</div>
+    </div>
+    <div class="stat-card info" id="statForms">
+      <div class="stat-value" id="statFormsVal">0</div>
+      <div class="stat-label">FORMS FOUND</div>
+    </div>
+  </section>
+
+  <!-- PROGRESS PANEL (visible during scan) -->
+  <section class="progress-panel hidden" id="progressPanel">
+    <div class="progress-header">
+      <div class="progress-phase" id="progressPhase">PHASE 1 — SUBDOMAIN ENUMERATION</div>
+      <div class="progress-counter" id="progressCounter">0 / 0</div>
+    </div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progressBar"></div>
+      <div class="progress-bar-glow"></div>
+    </div>
+    <div class="terminal-window" id="terminalWindow">
+      <div class="terminal-header">
+        <div class="terminal-dots">
+          <span class="tdot red"></span>
+          <span class="tdot yellow"></span>
+          <span class="tdot green"></span>
+        </div>
+        <span class="terminal-title">scanner@zerodaytool:~$</span>
+      </div>
+      <div class="terminal-body" id="terminalBody"></div>
+    </div>
+  </section>
+
+  <!-- RESULTS SECTION -->
+  <section class="results-section hidden" id="resultsSection">
+
+    <!-- TAB NAVIGATION -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('subdomains')" id="tab-subdomains">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        SUBDOMAINS
+        <span class="tab-badge" id="badge-subdomains">0</span>
+      </button>
+      <button class="tab" onclick="switchTab('links')" id="tab-links">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        ALL LINKS
+        <span class="tab-badge" id="badge-links">0</span>
+      </button>
+      <button class="tab" onclick="switchTab('broken')" id="tab-broken">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        BROKEN / ERRORS
+        <span class="tab-badge danger" id="badge-broken">0</span>
+      </button>
+      <button class="tab" onclick="switchTab('forms')" id="tab-forms">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        FORMS DETECTED
+        <span class="tab-badge warn" id="badge-forms">0</span>
+      </button>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div class="tab-content" id="content-subdomains">
+      <div class="content-toolbar">
+        <input type="text" class="filter-input" placeholder="Filter subdomains..." oninput="filterTable('subdomains-table', this.value)" />
+        <button class="export-btn" onclick="exportCSV('subdomains')">⬇ Export CSV</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="subdomains-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>SUBDOMAIN</th>
+              <th>IP ADDRESS</th>
+              <th>STATUS</th>
+              <th>RESPONSE</th>
+              <th>RESPONSE TIME</th>
+              <th>SERVER</th>
+            </tr>
+          </thead>
+          <tbody id="subdomains-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content hidden" id="content-links">
+      <div class="content-toolbar">
+        <input type="text" class="filter-input" placeholder="Filter links..." oninput="filterTable('links-table', this.value)" />
+        <div class="filter-chips">
+          <button class="chip active" onclick="filterByStatus('links-table', 'all', this)">ALL</button>
+          <button class="chip ok" onclick="filterByStatus('links-table', '200', this)">200 OK</button>
+          <button class="chip warn" onclick="filterByStatus('links-table', 'redirect', this)">REDIRECT</button>
+          <button class="chip danger" onclick="filterByStatus('links-table', 'error', this)">ERRORS/404</button>
+          <button class="chip soft404" onclick="filterByStatus('links-table', 'soft404', this)">SOFT 404</button>
+        </div>
+        <button class="export-btn" onclick="exportCSV('links')">⬇ Export CSV</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="links-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>URL</th>
+              <th>STATUS</th>
+              <th>REASON / REDIRECT</th>
+              <th>TIME (ms)</th>
+              <th>TYPE</th>
+            </tr>
+          </thead>
+          <tbody id="links-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content hidden" id="content-broken">
+      <div class="content-toolbar">
+        <input type="text" class="filter-input" placeholder="Filter broken links..." oninput="filterTable('broken-table', this.value)" />
+        <div class="filter-chips">
+          <button class="chip active" onclick="filterBroken('all', this)">ALL ISSUES</button>
+          <button class="chip danger" onclick="filterBroken('404', this)">404 ONLY</button>
+          <button class="chip soft404" onclick="filterBroken('soft404', this)">SOFT 404</button>
+          <button class="chip danger" onclick="filterBroken('error', this)">ERRORS</button>
+          <button class="chip warn" onclick="filterBroken('redirect', this)">REDIRECTS</button>
+        </div>
+        <button class="export-btn" onclick="exportCSV('broken')">⬇ Export CSV</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="broken-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>URL</th>
+              <th>STATUS</th>
+              <th>REASON</th>
+              <th>REDIRECT TO</th>
+              <th>RISK LEVEL</th>
+            </tr>
+          </thead>
+          <tbody id="broken-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content hidden" id="content-forms">
+      <div class="forms-grid" id="forms-grid">
+        <div class="empty-state">No forms detected</div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- ─── FOOTER ────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <span>ZERO-DAY SCANNER v2.0 &nbsp;|&nbsp; Ethical Use Only &nbsp;|&nbsp; Built for Educational Purposes</span>
+  <span>Developed by <strong>Dhanish</strong></span>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
